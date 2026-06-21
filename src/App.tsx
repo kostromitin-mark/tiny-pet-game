@@ -47,12 +47,22 @@ type DailyCareState = {
   dailyRewardClaimedDate: string | null
 }
 
+type JournalEntryType = 'care' | 'mood' | 'reward' | 'random' | 'system'
+
+type JournalEntry = {
+  id: string
+  timestamp: number
+  message: string
+  type: JournalEntryType
+}
+
 const STORAGE_KEY = 'tiny-pet-game:stats'
 const PROGRESSION_STORAGE_KEY = 'tiny-pet-game:progression'
 const NAME_STORAGE_KEY = 'tiny-pet-game:name'
 const CUSTOMIZATION_STORAGE_KEY = 'tiny-pet-game:customization'
 const LAST_UPDATED_STORAGE_KEY = 'tiny-pet-game:lastUpdated'
 const DAILY_CARE_STORAGE_KEY = 'tiny-pet-game:dailyCare'
+const JOURNAL_STORAGE_KEY = 'tiny-pet-game:journalEntries'
 const DEFAULT_PET_NAME = 'Mochi'
 const LEGACY_ACTIONS_PER_LEVEL = 5
 const RANDOM_EVENT_CHANCE = 0.3
@@ -60,6 +70,8 @@ const TIME_STEP_MS = 60_000
 const MAX_OFFLINE_STEPS = 4 * 60
 const STRONG_HUNGER_THRESHOLD = 85
 const LOW_ENERGY_THRESHOLD = 15
+const JOURNAL_DISPLAY_LIMIT = 10
+const JOURNAL_STORAGE_LIMIT = 100
 
 const INITIAL_STATS: PetStats = {
   hunger: 35,
@@ -82,6 +94,17 @@ const INITIAL_DAILY_CARE: DailyCareState = {
   careStreak: 0,
   lastCareDate: null,
   dailyRewardClaimedDate: null,
+}
+
+const journalTypeDetails: Record<
+  JournalEntryType,
+  { icon: string; label: string }
+> = {
+  care: { icon: '💗', label: 'Care' },
+  mood: { icon: '🌟', label: 'Mood' },
+  reward: { icon: '🎁', label: 'Reward' },
+  random: { icon: '✨', label: 'Random event' },
+  system: { icon: '🌱', label: 'System' },
 }
 
 const petTypes: { value: PetType; label: string; icon: string }[] = [
@@ -177,6 +200,11 @@ const getPreviousLocalDateKey = (date = new Date()) => {
   )
 
   return getLocalDateKey(previousDate)
+}
+
+const formatJournalTime = (timestamp: number) => {
+  const date = new Date(timestamp)
+  return `${padDatePart(date.getHours())}:${padDatePart(date.getMinutes())}`
 }
 
 const updateDailyCareForVisit = (
@@ -297,6 +325,51 @@ const loadDailyCare = (): DailyCareState => {
     return updateDailyCareForVisit(savedState)
   } catch {
     return updateDailyCareForVisit(INITIAL_DAILY_CARE)
+  }
+}
+
+const loadJournalEntries = (): JournalEntry[] => {
+  try {
+    const savedEntries = localStorage.getItem(JOURNAL_STORAGE_KEY)
+
+    if (!savedEntries) {
+      return []
+    }
+
+    const parsedEntries: unknown = JSON.parse(savedEntries)
+
+    if (!Array.isArray(parsedEntries)) {
+      return []
+    }
+
+    const validTypes: JournalEntryType[] = [
+      'care',
+      'mood',
+      'reward',
+      'random',
+      'system',
+    ]
+
+    return parsedEntries
+      .filter((entry): entry is JournalEntry => {
+        if (!entry || typeof entry !== 'object') {
+          return false
+        }
+
+        const candidate = entry as Partial<JournalEntry>
+        return (
+          typeof candidate.id === 'string' &&
+          typeof candidate.timestamp === 'number' &&
+          Number.isFinite(candidate.timestamp) &&
+          typeof candidate.message === 'string' &&
+          candidate.type !== undefined &&
+          validTypes.includes(candidate.type)
+        )
+      })
+      .sort((first, second) => second.timestamp - first.timestamp)
+      .slice(0, JOURNAL_STORAGE_LIMIT)
+  } catch {
+    return []
   }
 }
 
@@ -479,6 +552,8 @@ function App() {
   const [dailyRewardMessage, setDailyRewardMessage] = useState<string | null>(
     null,
   )
+  const [journalEntries, setJournalEntries] =
+    useState<JournalEntry[]>(loadJournalEntries)
   const [activeEvent, setActiveEvent] = useState<ActivePetEvent | null>(null)
   const [careWarning, setCareWarning] = useState<CareWarning | null>(
     timedSnapshot.warning,
@@ -499,6 +574,23 @@ function App() {
   const dailyRewardXp = getDailyRewardXp(dailyCare.careStreak)
   const isDailyRewardClaimed =
     dailyCare.dailyRewardClaimedDate === currentDate
+  const visibleJournalEntries = journalEntries.slice(0, JOURNAL_DISPLAY_LIMIT)
+
+  const addJournalEntry = (message: string, type: JournalEntryType) => {
+    const timestamp = Date.now()
+
+    setJournalEntries((current) =>
+      [
+        {
+          id: `${timestamp}-${Math.random().toString(36).slice(2, 9)}`,
+          timestamp,
+          message,
+          type,
+        },
+        ...current,
+      ].slice(0, JOURNAL_STORAGE_LIMIT),
+    )
+  }
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stats))
@@ -561,6 +653,13 @@ function App() {
   }, [dailyCare])
 
   useEffect(() => {
+    localStorage.setItem(
+      JOURNAL_STORAGE_KEY,
+      JSON.stringify(journalEntries),
+    )
+  }, [journalEntries])
+
+  useEffect(() => {
     const refreshLocalDate = () => {
       const now = new Date()
       const nextDate = getLocalDateKey(now)
@@ -598,6 +697,10 @@ function App() {
 
     previousLevel.current = progression.level
     setShowLevelUp(true)
+    addJournalEntry(
+      `${petName} reached level ${progression.level}!`,
+      'mood',
+    )
 
     const timer = window.setTimeout(() => {
       setShowLevelUp(false)
@@ -683,6 +786,7 @@ function App() {
       message: event.message,
       icon: event.icon,
     })
+    addJournalEntry(event.message, 'random')
   }
 
   const savePetName = (event: React.FormEvent<HTMLFormElement>) => {
@@ -712,6 +816,7 @@ function App() {
       hunger: clamp(current.hunger - 25),
     }))
     gainXp(10)
+    addJournalEntry(`${petName} was fed.`, 'care')
     tryRandomEvent()
   }
 
@@ -726,6 +831,7 @@ function App() {
       happiness: clamp(current.happiness + 20),
     }))
     gainXp(12)
+    addJournalEntry(`${petName} played and feels happier.`, 'care')
     tryRandomEvent()
   }
 
@@ -736,6 +842,7 @@ function App() {
       happiness: clamp(current.happiness - 5),
     }))
     gainXp(8)
+    addJournalEntry(`${petName} took a nap.`, 'care')
     tryRandomEvent()
   }
 
@@ -750,6 +857,11 @@ function App() {
       dailyRewardClaimedDate: currentDate,
     }))
     setDailyRewardMessage(`Daily reward claimed: +${dailyRewardXp} XP!`)
+    addJournalEntry(`${petName} received a daily reward.`, 'reward')
+  }
+
+  const clearJournal = () => {
+    setJournalEntries([])
   }
 
   const resetPet = () => {
@@ -768,6 +880,7 @@ function App() {
     setCareWarning(null)
     lastUpdatedRef.current = Date.now()
     setShowLevelUp(false)
+    addJournalEntry('A new pet journey started.', 'system')
   }
 
   return (
@@ -1091,6 +1204,49 @@ function App() {
               <small>Energy +30 · Happy −5 · +8 XP</small>
             </span>
           </button>
+        </section>
+
+        <section className="journal-card" aria-labelledby="journal-title">
+          <div className="journal-card__header">
+            <div>
+              <p>Little moments together</p>
+              <h2 id="journal-title">Pet Mood Journal</h2>
+            </div>
+            <button
+              className="clear-journal-button"
+              type="button"
+              onClick={clearJournal}
+              disabled={journalEntries.length === 0}
+            >
+              Clear Journal
+            </button>
+          </div>
+
+          {visibleJournalEntries.length === 0 ? (
+            <p className="journal-empty">No journal entries yet.</p>
+          ) : (
+            <ol className="journal-list">
+              {visibleJournalEntries.map((entry) => {
+                const typeDetails = journalTypeDetails[entry.type]
+
+                return (
+                  <li className={`journal-entry journal-entry--${entry.type}`} key={entry.id}>
+                    <span
+                      className="journal-entry__icon"
+                      aria-label={typeDetails.label}
+                      role="img"
+                    >
+                      {typeDetails.icon}
+                    </span>
+                    <p>{entry.message}</p>
+                    <time dateTime={new Date(entry.timestamp).toISOString()}>
+                      {formatJournalTime(entry.timestamp)}
+                    </time>
+                  </li>
+                )
+              })}
+            </ol>
+          )}
         </section>
       </section>
     </main>

@@ -15,6 +15,7 @@ happiness.
 - Small random events that can affect pet stats
 - Gentle stat changes over time, including while the game is closed
 - Daily care streaks and one XP reward per day
+- A local mood journal with recent care, reward, and event history
 - Automatic saving in `localStorage`
 - Reset button
 - Responsive design for desktop and mobile
