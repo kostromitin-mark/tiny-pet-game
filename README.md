@@ -36,3 +36,7 @@ Open the local address shown by Vite in your browser.
 npm run build
 npm run preview
 ```
+
+## Live Demo
+
+https://tiny-pet-game.vercel.app/
