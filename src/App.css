@@ -379,6 +379,115 @@ h1 {
   background: rgba(255, 204, 176, 0.42);
 }
 
+.room--dreaming {
+  background:
+    radial-gradient(circle at 50% 115%, #31395d 0 31%, transparent 31.5%),
+    radial-gradient(circle at 50% 15%, rgba(159, 178, 255, 0.24), transparent 30%),
+    linear-gradient(160deg, #171b3d, #343466);
+  border-color: rgba(126, 139, 210, 0.28);
+  box-shadow: inset 0 0 45px rgba(19, 19, 54, 0.3);
+}
+
+.room--dreaming::before {
+  background: rgba(18, 22, 55, 0.22);
+}
+
+.room--dreaming::after,
+.room--dreaming[data-mood='happy']::after,
+.room--dreaming[data-mood='tired']::after,
+.room--dreaming[data-mood='hungry']::after {
+  background: rgba(126, 145, 230, 0.2);
+  opacity: 0.7;
+  transform: translateX(-50%) scale(1.05);
+}
+
+.dream-sequence {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.dream-sequence__label {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  padding: 7px 12px;
+  border-radius: 999px;
+  color: #f3f0ff;
+  background: rgba(38, 42, 91, 0.68);
+  box-shadow: 0 7px 20px rgba(8, 10, 35, 0.2);
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  transform: translateX(-50%);
+  animation: dream-label-glow 1.7s ease-in-out infinite;
+}
+
+.dream-star,
+.dream-bubble {
+  position: absolute;
+  display: block;
+}
+
+.dream-star {
+  color: #fff2ad;
+  filter: drop-shadow(0 0 7px rgba(255, 237, 153, 0.6));
+  animation: dream-star-float 2.1s ease-in-out infinite;
+}
+
+.dream-star--one {
+  top: 27%;
+  left: 20%;
+  font-size: 1.2rem;
+}
+
+.dream-star--two {
+  top: 17%;
+  right: 20%;
+  font-size: 0.9rem;
+  animation-delay: -0.7s;
+}
+
+.dream-star--three {
+  top: 45%;
+  right: 15%;
+  font-size: 1.35rem;
+  animation-delay: -1.2s;
+}
+
+.dream-bubble {
+  border: 1px solid rgba(218, 226, 255, 0.45);
+  border-radius: 50%;
+  background: rgba(197, 210, 255, 0.12);
+  box-shadow: inset 4px 4px 9px rgba(255, 255, 255, 0.1);
+  animation: dream-bubble-rise 2.4s ease-in-out infinite;
+}
+
+.dream-bubble--one {
+  width: 25px;
+  height: 25px;
+  bottom: 19%;
+  left: 15%;
+}
+
+.dream-bubble--two {
+  width: 38px;
+  height: 38px;
+  bottom: 8%;
+  right: 19%;
+  animation-delay: -0.8s;
+}
+
+.dream-bubble--three {
+  width: 18px;
+  height: 18px;
+  bottom: 31%;
+  right: 31%;
+  animation-delay: -1.5s;
+}
+
 .level-up-message {
   position: absolute;
   top: 18px;
@@ -429,6 +538,101 @@ h1 {
   display: grid;
   place-items: center;
   z-index: 2;
+}
+
+.action-feedback {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.action-feedback__item,
+.action-feedback__pop,
+.action-sparkle {
+  position: absolute;
+  display: block;
+}
+
+.action-feedback__item {
+  filter: drop-shadow(0 5px 5px rgba(63, 47, 73, 0.18));
+}
+
+.action-feedback__pop {
+  top: 25px;
+  left: 50%;
+  padding: 5px 10px;
+  border-radius: 999px;
+  color: #5e4b68;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 6px 17px rgba(57, 43, 76, 0.13);
+  font-family: ui-rounded, 'Arial Rounded MT Bold', 'Trebuchet MS', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 900;
+  opacity: 0;
+  transform: translateX(-50%);
+  animation: action-pop 430ms 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.action-feedback--feed .action-feedback__item {
+  top: 83px;
+  left: -58px;
+  font-size: 1.75rem;
+  animation: feed-item-fly 760ms cubic-bezier(0.2, 0.72, 0.3, 1) both;
+}
+
+.action-feedback--play .action-feedback__item {
+  top: 66px;
+  left: -43px;
+  font-size: 1.55rem;
+  animation: play-item-bounce 920ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+.action-feedback--play .action-feedback__pop {
+  color: #73538e;
+  background: rgba(250, 237, 255, 0.94);
+}
+
+.action-sparkle {
+  color: #ffde79;
+  opacity: 0;
+  filter: drop-shadow(0 0 6px rgba(255, 216, 92, 0.5));
+  animation: action-sparkle-burst 620ms 270ms ease-out both;
+}
+
+.action-sparkle--one {
+  top: 42px;
+  left: 26px;
+  font-size: 1.1rem;
+}
+
+.action-sparkle--two {
+  top: 58px;
+  right: 15px;
+  font-size: 1.25rem;
+  animation-delay: 360ms;
+}
+
+.action-sparkle--three {
+  top: 106px;
+  right: 28px;
+  font-size: 0.82rem;
+  animation-delay: 450ms;
+}
+
+.pet-zzz {
+  position: absolute;
+  top: 5px;
+  right: 1px;
+  z-index: 7;
+  color: #eff0ff;
+  font-family: ui-rounded, 'Arial Rounded MT Bold', 'Trebuchet MS', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  filter: drop-shadow(0 2px 5px rgba(18, 18, 55, 0.38));
+  animation: zzz-float 1.6s ease-in-out infinite;
 }
 
 .pet-shadow {
@@ -605,6 +809,29 @@ h1 {
 
 .pet--hungry .pet__body {
   filter: saturate(0.9);
+}
+
+.pet--dreaming,
+.pet--dreaming.pet--happy,
+.pet--dreaming.pet--tired,
+.pet--dreaming.pet--hungry {
+  animation: dream-sleep-sway 2.2s ease-in-out infinite;
+}
+
+.pet--dreaming .pet__body {
+  filter: saturate(0.7) brightness(0.92);
+}
+
+.pet--dreaming .pet__face {
+  animation: none;
+}
+
+.pet--action-feed:not(.pet--dreaming) {
+  animation: feed-happy-reaction 920ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.pet--action-play:not(.pet--dreaming) {
+  animation: play-happy-reaction 980ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 .pet-color--peach {
@@ -840,6 +1067,85 @@ h1 {
 .mood-badge--hungry {
   color: #9b593f;
   background: #ffeadc;
+}
+
+.dream-result-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 15px 16px;
+  border: 1px solid rgba(101, 88, 159, 0.14);
+  border-radius: 19px;
+  color: #5b526d;
+  background:
+    radial-gradient(circle at 96% 5%, rgba(255, 235, 154, 0.3), transparent 29%),
+    linear-gradient(135deg, #f4f2ff, #fff9e8);
+  box-shadow: 0 10px 27px rgba(67, 56, 115, 0.1);
+  animation: dream-card-reveal 480ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.dream-result-card--rare {
+  border-color: rgba(82, 139, 189, 0.2);
+  background: linear-gradient(135deg, #eaf5ff, #f6f1ff);
+}
+
+.dream-result-card--legendary {
+  border-color: rgba(199, 141, 51, 0.25);
+  background: linear-gradient(135deg, #fff3c9, #f8ebff);
+  box-shadow: 0 11px 29px rgba(157, 104, 44, 0.13);
+}
+
+.dream-result-card__emoji {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 17px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: inset 0 -4px 0 rgba(80, 64, 111, 0.06);
+  font-size: 1.8rem;
+}
+
+.dream-result-card__eyebrow {
+  margin: 0 0 1px !important;
+  color: #9287a2 !important;
+  font-size: 0.61rem !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.dream-result-card h2 {
+  margin: 0;
+  color: #4d425e;
+  font-family: ui-rounded, 'Arial Rounded MT Bold', 'Trebuchet MS', sans-serif;
+  font-size: 1.08rem;
+}
+
+.dream-result-card p {
+  margin: 3px 0;
+  color: #766d82;
+  font-size: 0.77rem;
+  font-weight: 700;
+}
+
+.dream-result-card strong {
+  color: #72599a;
+  font-size: 0.75rem;
+}
+
+.peaceful-nap-message {
+  margin: 13px 0 0;
+  padding: 11px 14px;
+  border: 1px solid rgba(98, 107, 165, 0.12);
+  border-radius: 15px;
+  color: #676580;
+  background: linear-gradient(135deg, #edf0ff, #f8f4ff);
+  font-size: 0.82rem;
+  font-weight: 800;
+  animation: status-arrive 320ms ease both;
 }
 
 .random-event {
@@ -1168,6 +1474,119 @@ h1 {
     radial-gradient(circle at 95% 0%, rgba(178, 218, 255, 0.3), transparent 30%),
     linear-gradient(145deg, #fff, #f7f6ff);
   box-shadow: 0 11px 27px rgba(64, 52, 101, 0.08);
+}
+
+.dream-album {
+  margin-top: 14px;
+  padding: 18px;
+  border: 1px solid rgba(84, 79, 142, 0.11);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 95% 0%, rgba(171, 185, 255, 0.28), transparent 30%),
+    linear-gradient(145deg, #fbfaff, #f2f3ff);
+  box-shadow: 0 11px 27px rgba(57, 54, 106, 0.08);
+}
+
+.dream-album__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 13px;
+}
+
+.dream-album__header p {
+  margin: 0 0 2px;
+  color: #918cab;
+  font-size: 0.63rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.dream-album__header h2 {
+  margin: 0;
+  color: #4b4966;
+  font-family: ui-rounded, 'Arial Rounded MT Bold', 'Trebuchet MS', sans-serif;
+  font-size: 1.1rem;
+}
+
+.dream-album__header > span {
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: #645f86;
+  background: #e4e5ff;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.dream-album__empty {
+  margin: 0;
+  padding: 20px 12px;
+  border: 1px dashed rgba(91, 88, 151, 0.19);
+  border-radius: 15px;
+  color: #918ea5;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.dream-album__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.dream-album-card {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  padding: 11px;
+  border: 1px solid rgba(86, 83, 139, 0.09);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.dream-album-card--rare {
+  background: rgba(235, 246, 255, 0.82);
+}
+
+.dream-album-card--legendary {
+  background: linear-gradient(135deg, rgba(255, 244, 204, 0.85), rgba(249, 236, 255, 0.85));
+}
+
+.dream-album-card__emoji {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.75);
+  font-size: 1.2rem;
+}
+
+.dream-album-card__rarity {
+  color: #918ba5;
+  font-size: 0.56rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dream-album-card h3 {
+  margin: 1px 0 2px;
+  color: #55516b;
+  font-family: ui-rounded, 'Arial Rounded MT Bold', 'Trebuchet MS', sans-serif;
+  font-size: 0.86rem;
+}
+
+.dream-album-card p {
+  margin: 0;
+  color: #817c8d;
+  font-size: 0.67rem;
+  font-weight: 700;
+  line-height: 1.35;
 }
 
 .journal-card__header {
@@ -1506,6 +1925,175 @@ h1 {
   }
 }
 
+@keyframes dream-star-float {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: translateY(3px) scale(0.85) rotate(-6deg);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-8px) scale(1.08) rotate(6deg);
+  }
+}
+
+@keyframes dream-bubble-rise {
+  0%,
+  100% {
+    opacity: 0.28;
+    transform: translateY(7px) scale(0.9);
+  }
+  50% {
+    opacity: 0.72;
+    transform: translateY(-12px) scale(1.04);
+  }
+}
+
+@keyframes dream-label-glow {
+  0%,
+  100% {
+    opacity: 0.72;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes zzz-float {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: translate(0, 4px) scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(5px, -7px) scale(1.05);
+  }
+}
+
+@keyframes dream-sleep-sway {
+  0%,
+  100% {
+    transform: translateY(4px) rotate(-2deg) scaleY(0.96);
+  }
+  50% {
+    transform: translateY(7px) rotate(2deg) scaleY(0.93);
+  }
+}
+
+@keyframes dream-card-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-7px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes feed-item-fly {
+  0% {
+    opacity: 0;
+    transform: translate(-12px, 13px) rotate(-25deg) scale(0.75);
+  }
+  18% {
+    opacity: 1;
+  }
+  72% {
+    opacity: 1;
+    transform: translate(117px, -5px) rotate(18deg) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(135px, 3px) rotate(30deg) scale(0.42);
+  }
+}
+
+@keyframes play-item-bounce {
+  0% {
+    opacity: 0;
+    transform: translate(-8px, 26px) rotate(-20deg) scale(0.75);
+  }
+  16% {
+    opacity: 1;
+  }
+  42% {
+    transform: translate(83px, -30px) rotate(105deg) scale(1);
+  }
+  72% {
+    opacity: 1;
+    transform: translate(146px, 10px) rotate(210deg) scale(0.92);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(184px, -18px) rotate(290deg) scale(0.7);
+  }
+}
+
+@keyframes action-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 8px) scale(0.75);
+  }
+  35% {
+    opacity: 1;
+    transform: translate(-50%, -3px) scale(1.08);
+  }
+  72% {
+    opacity: 1;
+    transform: translate(-50%, -4px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -11px) scale(0.95);
+  }
+}
+
+@keyframes action-sparkle-burst {
+  0% {
+    opacity: 0;
+    transform: scale(0.25) rotate(-20deg);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.2) rotate(7deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-11px) scale(0.7) rotate(18deg);
+  }
+}
+
+@keyframes feed-happy-reaction {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0) scale(1);
+  }
+  45% {
+    transform: translateY(-10px) rotate(-2deg) scale(1.03, 0.97);
+  }
+  68% {
+    transform: translateY(-5px) rotate(2deg) scale(0.99, 1.02);
+  }
+}
+
+@keyframes play-happy-reaction {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0) scale(1);
+  }
+  26% {
+    transform: translateY(-8px) rotate(-5deg) scale(1.02);
+  }
+  52% {
+    transform: translateY(-13px) rotate(5deg) scale(1.04, 0.97);
+  }
+  76% {
+    transform: translateY(-6px) rotate(-3deg) scale(1);
+  }
+}
+
 @keyframes float {
   0%,
   100% {
@@ -1586,6 +2174,10 @@ h1 {
     margin-top: 11px;
   }
 
+  .dream-result-card {
+    margin-top: 11px;
+  }
+
   .care-warning {
     margin-top: 9px;
   }
@@ -1625,6 +2217,12 @@ h1 {
   }
 
   .journal-card {
+    margin-top: 11px;
+    padding: 14px;
+    border-radius: 20px;
+  }
+
+  .dream-album {
     margin-top: 11px;
     padding: 14px;
     border-radius: 20px;
@@ -1769,6 +2367,25 @@ h1 {
     align-items: flex-start;
   }
 
+  .dream-result-card {
+    grid-template-columns: 1fr;
+  }
+
+  .dream-result-card__emoji {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    font-size: 1.5rem;
+  }
+
+  .dream-album__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dream-album__header {
+    align-items: flex-start;
+  }
+
   .journal-entry {
     grid-template-columns: auto minmax(0, 1fr);
   }
@@ -1786,5 +2403,34 @@ h1 {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .dream-sequence__label,
+  .dream-star,
+  .dream-bubble,
+  .pet-zzz,
+  .pet--dreaming {
+    animation: none !important;
+  }
+
+  .dream-star,
+  .dream-bubble {
+    opacity: 0.45;
+  }
+
+  .action-feedback__item,
+  .action-sparkle {
+    display: none;
+  }
+
+  .action-feedback__pop {
+    opacity: 1;
+    transform: translateX(-50%);
+    animation: none !important;
+  }
+
+  .pet--action-feed,
+  .pet--action-play {
+    animation: none !important;
   }
 }

@@ -56,6 +56,20 @@ type JournalEntry = {
   type: JournalEntryType
 }
 
+type DreamRarity = 'common' | 'rare' | 'legendary'
+
+type DreamCard = {
+  id: string
+  title: string
+  description: string
+  emoji: string
+  effectText: string
+  rarity: DreamRarity
+  effect: Partial<PetStats> & { xp?: number }
+}
+
+type ActionAnimation = 'feed' | 'play' | null
+
 const STORAGE_KEY = 'tiny-pet-game:stats'
 const PROGRESSION_STORAGE_KEY = 'tiny-pet-game:progression'
 const NAME_STORAGE_KEY = 'tiny-pet-game:name'
@@ -63,6 +77,7 @@ const CUSTOMIZATION_STORAGE_KEY = 'tiny-pet-game:customization'
 const LAST_UPDATED_STORAGE_KEY = 'tiny-pet-game:lastUpdated'
 const DAILY_CARE_STORAGE_KEY = 'tiny-pet-game:dailyCare'
 const JOURNAL_STORAGE_KEY = 'tiny-pet-game:journalEntries'
+const DREAM_ALBUM_STORAGE_KEY = 'tiny-pet-game:dreamAlbum'
 const DEFAULT_PET_NAME = 'Mochi'
 const LEGACY_ACTIONS_PER_LEVEL = 5
 const RANDOM_EVENT_CHANCE = 0.3
@@ -72,6 +87,13 @@ const STRONG_HUNGER_THRESHOLD = 85
 const LOW_ENERGY_THRESHOLD = 15
 const JOURNAL_DISPLAY_LIMIT = 10
 const JOURNAL_STORAGE_LIMIT = 100
+const DREAM_CHANCE = 0.4
+const DREAM_SEQUENCE_DURATION_MS = 2_400
+const REDUCED_MOTION_DREAM_DURATION_MS = 350
+const ACTION_ANIMATION_DURATION_MS = 1_000
+const REDUCED_MOTION_ACTION_DURATION_MS = 180
+const FEED_ANIMATION_EMOJI = '🍪'
+const PLAY_ANIMATION_EMOJI = '🎾'
 
 const INITIAL_STATS: PetStats = {
   hunger: 35,
@@ -106,6 +128,81 @@ const journalTypeDetails: Record<
   random: { icon: '✨', label: 'Random event' },
   system: { icon: '🌱', label: 'System' },
 }
+
+const dreamCards: DreamCard[] = [
+  {
+    id: 'moon-garden',
+    title: 'Moon Garden',
+    description: 'Silver flowers opened under a smiling moon.',
+    emoji: '🌙',
+    effectText: '+8 happiness',
+    rarity: 'common',
+    effect: { happiness: 8 },
+  },
+  {
+    id: 'tiny-rocket',
+    title: 'Tiny Rocket',
+    description: 'A pocket rocket zipped between twinkling planets.',
+    emoji: '🚀',
+    effectText: '+10 XP',
+    rarity: 'rare',
+    effect: { xp: 10 },
+  },
+  {
+    id: 'toy-mountain',
+    title: 'Toy Mountain',
+    description: 'Every path was built from blocks, balls, and tiny trains.',
+    emoji: '🧸',
+    effectText: '+6 happiness',
+    rarity: 'common',
+    effect: { happiness: 6 },
+  },
+  {
+    id: 'bubble-ocean',
+    title: 'Bubble Ocean',
+    description: 'Soft bubbles carried the dream across a quiet blue sea.',
+    emoji: '🫧',
+    effectText: '+8 energy',
+    rarity: 'common',
+    effect: { energy: 8 },
+  },
+  {
+    id: 'candy-forest',
+    title: 'Candy Forest',
+    description: 'Lollipop trees rustled in a warm sugar breeze.',
+    emoji: '🍭',
+    effectText: '+10 happiness',
+    rarity: 'rare',
+    effect: { happiness: 10 },
+  },
+  {
+    id: 'tiny-kingdom',
+    title: 'Tiny Kingdom',
+    description: 'A cheerful kingdom welcomed its smallest royal guest.',
+    emoji: '👑',
+    effectText: '+15 XP',
+    rarity: 'legendary',
+    effect: { xp: 15 },
+  },
+  {
+    id: 'star-pillow',
+    title: 'Star Pillow',
+    description: 'A glowing star became the coziest pillow in the sky.',
+    emoji: '⭐',
+    effectText: '+10 energy',
+    rarity: 'rare',
+    effect: { energy: 10 },
+  },
+  {
+    id: 'cloud-castle',
+    title: 'Cloud Castle',
+    description: 'A fluffy castle floated above a peach-colored sunset.',
+    emoji: '☁️',
+    effectText: '+8 XP and +4 happiness',
+    rarity: 'legendary',
+    effect: { xp: 8, happiness: 4 },
+  },
+]
 
 const petTypes: { value: PetType; label: string; icon: string }[] = [
   { value: 'cat', label: 'Cat', icon: '🐱' },
@@ -373,6 +470,32 @@ const loadJournalEntries = (): JournalEntry[] => {
   }
 }
 
+const loadDreamAlbum = (): string[] => {
+  try {
+    const savedDreamIds = localStorage.getItem(DREAM_ALBUM_STORAGE_KEY)
+
+    if (!savedDreamIds) {
+      return []
+    }
+
+    const parsedDreamIds: unknown = JSON.parse(savedDreamIds)
+    const validDreamIds = new Set(dreamCards.map((dream) => dream.id))
+
+    if (!Array.isArray(parsedDreamIds)) {
+      return []
+    }
+
+    return parsedDreamIds.filter(
+      (dreamId, index): dreamId is string =>
+        typeof dreamId === 'string' &&
+        validDreamIds.has(dreamId) &&
+        parsedDreamIds.indexOf(dreamId) === index,
+    )
+  } catch {
+    return []
+  }
+}
+
 const isPetStats = (value: unknown): value is PetStats => {
   if (!value || typeof value !== 'object') {
     return false
@@ -554,6 +677,14 @@ function App() {
   )
   const [journalEntries, setJournalEntries] =
     useState<JournalEntry[]>(loadJournalEntries)
+  const [discoveredDreamIds, setDiscoveredDreamIds] =
+    useState<string[]>(loadDreamAlbum)
+  const [isDreaming, setIsDreaming] = useState(false)
+  const [activeDream, setActiveDream] = useState<DreamCard | null>(null)
+  const [dreamMessage, setDreamMessage] = useState<string | null>(null)
+  const [actionAnimation, setActionAnimation] =
+    useState<ActionAnimation>(null)
+  const [actionAnimationRun, setActionAnimationRun] = useState(0)
   const [activeEvent, setActiveEvent] = useState<ActivePetEvent | null>(null)
   const [careWarning, setCareWarning] = useState<CareWarning | null>(
     timedSnapshot.warning,
@@ -562,6 +693,8 @@ function App() {
   const previousLevel = useRef(progression.level)
   const lastUpdatedRef = useRef(timedSnapshot.lastUpdated)
   const currentDateRef = useRef(currentDate)
+  const dreamSequenceTimerRef = useRef<number | null>(null)
+  const actionAnimationTimerRef = useRef<number | null>(null)
   const previousCriticalState = useRef({
     hungry: stats.hunger >= STRONG_HUNGER_THRESHOLD,
     tired: stats.energy <= LOW_ENERGY_THRESHOLD,
@@ -575,6 +708,9 @@ function App() {
   const isDailyRewardClaimed =
     dailyCare.dailyRewardClaimedDate === currentDate
   const visibleJournalEntries = journalEntries.slice(0, JOURNAL_DISPLAY_LIMIT)
+  const discoveredDreams = discoveredDreamIds
+    .map((dreamId) => dreamCards.find((dream) => dream.id === dreamId))
+    .filter((dream): dream is DreamCard => Boolean(dream))
 
   const addJournalEntry = (message: string, type: JournalEntryType) => {
     const timestamp = Date.now()
@@ -658,6 +794,26 @@ function App() {
       JSON.stringify(journalEntries),
     )
   }, [journalEntries])
+
+  useEffect(() => {
+    localStorage.setItem(
+      DREAM_ALBUM_STORAGE_KEY,
+      JSON.stringify(discoveredDreamIds),
+    )
+  }, [discoveredDreamIds])
+
+  useEffect(
+    () => () => {
+      if (dreamSequenceTimerRef.current !== null) {
+        window.clearTimeout(dreamSequenceTimerRef.current)
+      }
+
+      if (actionAnimationTimerRef.current !== null) {
+        window.clearTimeout(actionAnimationTimerRef.current)
+      }
+    },
+    [],
+  )
 
   useEffect(() => {
     const refreshLocalDate = () => {
@@ -806,6 +962,27 @@ function App() {
     }))
   }
 
+  const startActionAnimation = (animation: Exclude<ActionAnimation, null>) => {
+    if (actionAnimationTimerRef.current !== null) {
+      window.clearTimeout(actionAnimationTimerRef.current)
+    }
+
+    const prefersReducedMotion = window.matchMedia(
+      '(prefers-reduced-motion: reduce)',
+    ).matches
+    const animationDuration = prefersReducedMotion
+      ? REDUCED_MOTION_ACTION_DURATION_MS
+      : ACTION_ANIMATION_DURATION_MS
+
+    setActionAnimation(animation)
+    setActionAnimationRun((current) => current + 1)
+
+    actionAnimationTimerRef.current = window.setTimeout(() => {
+      setActionAnimation(null)
+      actionAnimationTimerRef.current = null
+    }, animationDuration)
+  }
+
   const feedPet = () => {
     if (stats.hunger <= 0) {
       return
@@ -816,6 +993,7 @@ function App() {
       hunger: clamp(current.hunger - 25),
     }))
     gainXp(10)
+    startActionAnimation('feed')
     addJournalEntry(`${petName} was fed.`, 'care')
     tryRandomEvent()
   }
@@ -831,11 +1009,58 @@ function App() {
       happiness: clamp(current.happiness + 20),
     }))
     gainXp(12)
+    startActionAnimation('play')
     addJournalEntry(`${petName} played and feels happier.`, 'care')
     tryRandomEvent()
   }
 
+  const applyDreamReward = (dream: DreamCard) => {
+    const hasStatReward =
+      dream.effect.hunger !== undefined ||
+      dream.effect.energy !== undefined ||
+      dream.effect.happiness !== undefined
+
+    if (hasStatReward) {
+      setStats((current) => ({
+        hunger: clamp(current.hunger + (dream.effect.hunger ?? 0)),
+        energy: clamp(current.energy + (dream.effect.energy ?? 0)),
+        happiness: clamp(
+          current.happiness + (dream.effect.happiness ?? 0),
+        ),
+      }))
+    }
+
+    if (dream.effect.xp) {
+      gainXp(dream.effect.xp)
+    }
+  }
+
   const putPetToSleep = () => {
+    if (isDreaming) {
+      return
+    }
+
+    if (actionAnimationTimerRef.current !== null) {
+      window.clearTimeout(actionAnimationTimerRef.current)
+      actionAnimationTimerRef.current = null
+    }
+    setActionAnimation(null)
+
+    const dream =
+      Math.random() < DREAM_CHANCE
+        ? dreamCards[Math.floor(Math.random() * dreamCards.length)]
+        : null
+    const prefersReducedMotion = window.matchMedia(
+      '(prefers-reduced-motion: reduce)',
+    ).matches
+    const sequenceDuration = prefersReducedMotion
+      ? REDUCED_MOTION_DREAM_DURATION_MS
+      : DREAM_SEQUENCE_DURATION_MS
+
+    setActiveDream(null)
+    setDreamMessage(null)
+    setIsDreaming(true)
+
     setStats((current) => ({
       ...current,
       energy: clamp(current.energy + 30),
@@ -844,6 +1069,26 @@ function App() {
     gainXp(8)
     addJournalEntry(`${petName} took a nap.`, 'care')
     tryRandomEvent()
+
+    dreamSequenceTimerRef.current = window.setTimeout(() => {
+      setIsDreaming(false)
+      dreamSequenceTimerRef.current = null
+
+      if (!dream) {
+        setDreamMessage(`${petName} had a peaceful nap.`)
+        return
+      }
+
+      applyDreamReward(dream)
+      setDiscoveredDreamIds((current) =>
+        current.includes(dream.id) ? current : [dream.id, ...current],
+      )
+      setActiveDream(dream)
+      addJournalEntry(
+        `${petName} dreamed about ${dream.title}.`,
+        'mood',
+      )
+    }, sequenceDuration)
   }
 
   const claimDailyReward = () => {
@@ -865,6 +1110,16 @@ function App() {
   }
 
   const resetPet = () => {
+    if (dreamSequenceTimerRef.current !== null) {
+      window.clearTimeout(dreamSequenceTimerRef.current)
+      dreamSequenceTimerRef.current = null
+    }
+
+    if (actionAnimationTimerRef.current !== null) {
+      window.clearTimeout(actionAnimationTimerRef.current)
+      actionAnimationTimerRef.current = null
+    }
+
     setStats({ ...INITIAL_STATS })
     setProgression({ ...INITIAL_PROGRESSION })
     setPetName(DEFAULT_PET_NAME)
@@ -876,6 +1131,12 @@ function App() {
     setCurrentDate(resetDateKey)
     setDailyCare(updateDailyCareForVisit(INITIAL_DAILY_CARE, resetDate))
     setDailyRewardMessage(null)
+    setDiscoveredDreamIds([])
+    setIsDreaming(false)
+    setActiveDream(null)
+    setDreamMessage(null)
+    setActionAnimation(null)
+    setActionAnimationRun(0)
     setActiveEvent(null)
     setCareWarning(null)
     lastUpdatedRef.current = Date.now()
@@ -984,10 +1245,27 @@ function App() {
           </div>
         </section>
 
-        <div className="room" data-mood={mood}>
+        <div
+          className={`room${isDreaming ? ' room--dreaming' : ''}`}
+          data-mood={mood}
+        >
           {showLevelUp && (
             <div className="level-up-message" role="status">
               Level up!
+            </div>
+          )}
+
+          {isDreaming && (
+            <div className="dream-sequence" aria-live="polite">
+              <span className="dream-star dream-star--one">✦</span>
+              <span className="dream-star dream-star--two">★</span>
+              <span className="dream-star dream-star--three">✧</span>
+              <span className="dream-bubble dream-bubble--one" />
+              <span className="dream-bubble dream-bubble--two" />
+              <span className="dream-bubble dream-bubble--three" />
+              <span className="dream-sequence__label">
+                {petName} is dreaming...
+              </span>
             </div>
           )}
 
@@ -1003,15 +1281,59 @@ function App() {
 
           <div className="pet-wrap">
             <div className="pet-shadow" aria-hidden="true" />
+            {isDreaming && (
+              <span className="pet-zzz" aria-hidden="true">
+                Zzz
+              </span>
+            )}
+            {actionAnimation && (
+              <div
+                className={`action-feedback action-feedback--${actionAnimation}`}
+                key={`${actionAnimation}-${actionAnimationRun}`}
+                aria-live="polite"
+              >
+                {actionAnimation === 'feed' ? (
+                  <>
+                    <span className="action-feedback__item" aria-hidden="true">
+                      {FEED_ANIMATION_EMOJI}
+                    </span>
+                    <span className="action-feedback__pop">Yum!</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="action-feedback__item" aria-hidden="true">
+                      {PLAY_ANIMATION_EMOJI}
+                    </span>
+                    <span className="action-sparkle action-sparkle--one" aria-hidden="true">
+                      ✦
+                    </span>
+                    <span className="action-sparkle action-sparkle--two" aria-hidden="true">
+                      ✨
+                    </span>
+                    <span className="action-sparkle action-sparkle--three" aria-hidden="true">
+                      ★
+                    </span>
+                    <span className="action-feedback__pop">Fun!</span>
+                  </>
+                )}
+              </div>
+            )}
             <div
-              className={`pet pet--${mood} pet-type--${customization.type} pet-color--${customization.color}`}
+              key={`pet-action-${actionAnimationRun}`}
+              className={`pet pet--${mood} pet-type--${customization.type} pet-color--${customization.color}${isDreaming ? ' pet--dreaming' : ''}${actionAnimation && !isDreaming ? ` pet--action-${actionAnimation}` : ''}`}
               role="img"
-              aria-label={`${petName} is a ${customization.color} ${customization.type}, feeling ${moodInfo.label.toLowerCase()}`}
+              aria-label={
+                isDreaming
+                  ? `${petName} is sleeping and dreaming`
+                  : `${petName} is a ${customization.color} ${customization.type}, feeling ${moodInfo.label.toLowerCase()}`
+              }
             >
               <div className="pet__ear pet__ear--left" />
               <div className="pet__ear pet__ear--right" />
               <div className="pet__body">
-                <div className="pet__face">{moodInfo.face}</div>
+                <div className="pet__face">
+                  {isDreaming ? '😴' : moodInfo.face}
+                </div>
                 <div className="pet__blush pet__blush--left" />
                 <div className="pet__blush pet__blush--right" />
               </div>
@@ -1034,16 +1356,46 @@ function App() {
           </div>
 
           <div className="mood-copy" aria-live="polite">
-            <div className="mood-copy__content" key={mood}>
+            <div
+              className="mood-copy__content"
+              key={isDreaming ? 'dreaming' : mood}
+            >
               <strong className="pet-display-name">{petName}</strong>
               <span className={`mood-badge mood-badge--${mood}`}>
-                {moodInfo.label}
+                {isDreaming ? 'Dreaming' : moodInfo.label}
               </span>
-              <p className="mood-copy__status">{moodInfo.status}</p>
+              <p className="mood-copy__status">
+                {isDreaming ? 'Sweet dreams...' : moodInfo.status}
+              </p>
               <p className="mood-copy__message">{moodInfo.message}</p>
             </div>
           </div>
         </div>
+
+        {activeDream && (
+          <aside
+            className={`dream-result-card dream-result-card--${activeDream.rarity}`}
+            role="status"
+          >
+            <span className="dream-result-card__emoji" aria-hidden="true">
+              {activeDream.emoji}
+            </span>
+            <div>
+              <p className="dream-result-card__eyebrow">
+                {activeDream.rarity} dream discovered
+              </p>
+              <h2>{activeDream.title}</h2>
+              <p>{activeDream.description}</p>
+              <strong>{activeDream.effectText}</strong>
+            </div>
+          </aside>
+        )}
+
+        {dreamMessage && (
+          <p className="peaceful-nap-message" role="status">
+            🌙 {dreamMessage}
+          </p>
+        )}
 
         {activeEvent && (
           <aside className="random-event" key={activeEvent.id} role="status">
@@ -1195,15 +1547,58 @@ function App() {
           <button
             className="action-button action-button--sleep"
             onClick={putPetToSleep}
+            disabled={isDreaming}
           >
             <span className="action-button__icon" aria-hidden="true">
               🌙
             </span>
             <span>
               <strong>Sleep</strong>
-              <small>Energy +30 · Happy −5 · +8 XP</small>
+              <small>
+                {isDreaming
+                  ? 'Dream sequence in progress...'
+                  : 'Energy +30 · Happy −5 · +8 XP'}
+              </small>
             </span>
           </button>
+        </section>
+
+        <section className="dream-album" aria-labelledby="dream-album-title">
+          <div className="dream-album__header">
+            <div>
+              <p>Collected while sleeping</p>
+              <h2 id="dream-album-title">Dream Album</h2>
+            </div>
+            <span>
+              {discoveredDreams.length}/{dreamCards.length}
+            </span>
+          </div>
+
+          {discoveredDreams.length === 0 ? (
+            <p className="dream-album__empty">
+              No dreams discovered yet.
+            </p>
+          ) : (
+            <div className="dream-album__grid">
+              {discoveredDreams.map((dream) => (
+                <article
+                  className={`dream-album-card dream-album-card--${dream.rarity}`}
+                  key={dream.id}
+                >
+                  <span className="dream-album-card__emoji" aria-hidden="true">
+                    {dream.emoji}
+                  </span>
+                  <div>
+                    <span className="dream-album-card__rarity">
+                      {dream.rarity}
+                    </span>
+                    <h3>{dream.title}</h3>
+                    <p>{dream.description}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="journal-card" aria-labelledby="journal-title">
