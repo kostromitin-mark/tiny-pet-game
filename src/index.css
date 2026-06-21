@@ -1,0 +1,34 @@
+:root {
+  font-family: 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
+  color: #3f3851;
+  background: #f8f5ff;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  --ink: #3f3851;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  min-height: 100%;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  overflow-x: hidden;
+}
+
+button {
+  font: inherit;
+}
+
+button:focus-visible {
+  outline: 4px solid rgba(105, 81, 193, 0.28);
+  outline-offset: 3px;
+}
