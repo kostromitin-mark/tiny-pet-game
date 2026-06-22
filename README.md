@@ -1,8 +1,10 @@
 # Tiny Pet Game
 
-Tiny Pet Game is a cozy browser game where you take care of a customizable
-virtual pet. Feed it, play together, help it rest, discover dreams, and build
-a daily care streak.
+Tiny Pet Game is a browser-based mini game built with React, TypeScript, and Vite.
+
+The player takes care of a pet by feeding it, playing with it, putting it to sleep, earning XP, discovering dreams, and viewing a history of events.
+
+The project includes animations, localStorage persistence, random events, Pet Mood Journal, Dream Album, and deployment with Vercel.
 
 ## Live Demo
 
