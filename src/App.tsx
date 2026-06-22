@@ -285,6 +285,17 @@ const clamp = (value: number) => Math.min(100, Math.max(0, value))
 const getXpForNextLevel = (level: number) => 40 + (level - 1) * 15
 const roundStat = (value: number) => Math.round(value * 100) / 100
 const padDatePart = (value: number) => String(value).padStart(2, '0')
+const saveStorageValue = (key: string, value: string) => {
+  try {
+    localStorage.setItem(key, value)
+  } catch {
+    // The game still works in-memory when browser storage is unavailable.
+  }
+}
+
+const saveStorageJson = (key: string, value: unknown) => {
+  saveStorageValue(key, JSON.stringify(value))
+}
 
 const getLocalDateKey = (date = new Date()) =>
   `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())}`
@@ -550,16 +561,25 @@ const loadTimedStats = (): TimedStatsSnapshot => {
       }
     }
 
+    const baseline = Math.min(savedLastUpdated, now)
+    const rawElapsedSteps = Math.max(
+      0,
+      Math.floor((now - baseline) / TIME_STEP_MS),
+    )
     const elapsedSteps = Math.min(
       MAX_OFFLINE_STEPS,
-      Math.max(0, Math.floor((now - savedLastUpdated) / TIME_STEP_MS)),
+      rawElapsedSteps,
     )
     const updatedStats =
       elapsedSteps > 0 ? applyTimeChanges(stats, elapsedSteps) : stats
+    const nextLastUpdated =
+      rawElapsedSteps > MAX_OFFLINE_STEPS
+        ? now
+        : baseline + elapsedSteps * TIME_STEP_MS
 
     return {
       stats: updatedStats,
-      lastUpdated: now,
+      lastUpdated: nextLastUpdated,
       warning:
         elapsedSteps > 0 && updatedStats.hunger >= STRONG_HUNGER_THRESHOLD
           ? 'hungry'
@@ -701,7 +721,8 @@ function App() {
   })
   const mood = getMood(stats)
   const moodInfo = moodDetails[mood]
-  const isPlayDisabled = stats.energy < 15
+  const isFeedDisabled = stats.hunger <= 0 || isDreaming
+  const isPlayDisabled = stats.energy < 15 || isDreaming
   const xpNeeded = getXpForNextLevel(progression.level)
   const progressPercent = (progression.xp / xpNeeded) * 100
   const dailyRewardXp = getDailyRewardXp(dailyCare.careStreak)
@@ -729,25 +750,39 @@ function App() {
   }
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(stats))
-    const now = Date.now()
-    lastUpdatedRef.current = now
-    localStorage.setItem(LAST_UPDATED_STORAGE_KEY, String(now))
+    saveStorageJson(STORAGE_KEY, stats)
   }, [stats])
 
   useEffect(() => {
+    saveStorageValue(
+      LAST_UPDATED_STORAGE_KEY,
+      String(lastUpdatedRef.current),
+    )
+
     const applyElapsedChanges = () => {
       const now = Date.now()
+      const baseline = Math.min(lastUpdatedRef.current, now)
+      const rawElapsedSteps = Math.max(
+        0,
+        Math.floor((now - baseline) / TIME_STEP_MS),
+      )
       const elapsedSteps = Math.min(
         MAX_OFFLINE_STEPS,
-        Math.floor((now - lastUpdatedRef.current) / TIME_STEP_MS),
+        rawElapsedSteps,
       )
 
       if (elapsedSteps < 1) {
         return
       }
 
-      lastUpdatedRef.current = now
+      lastUpdatedRef.current =
+        rawElapsedSteps > MAX_OFFLINE_STEPS
+          ? now
+          : baseline + elapsedSteps * TIME_STEP_MS
+      saveStorageValue(
+        LAST_UPDATED_STORAGE_KEY,
+        String(lastUpdatedRef.current),
+      )
       setStats((current) => applyTimeChanges(current, elapsedSteps))
     }
 
@@ -767,39 +802,27 @@ function App() {
   }, [])
 
   useEffect(() => {
-    localStorage.setItem(NAME_STORAGE_KEY, petName)
+    saveStorageValue(NAME_STORAGE_KEY, petName)
   }, [petName])
 
   useEffect(() => {
-    localStorage.setItem(
-      CUSTOMIZATION_STORAGE_KEY,
-      JSON.stringify(customization),
-    )
+    saveStorageJson(CUSTOMIZATION_STORAGE_KEY, customization)
   }, [customization])
 
   useEffect(() => {
-    localStorage.setItem(
-      PROGRESSION_STORAGE_KEY,
-      JSON.stringify(progression),
-    )
+    saveStorageJson(PROGRESSION_STORAGE_KEY, progression)
   }, [progression])
 
   useEffect(() => {
-    localStorage.setItem(DAILY_CARE_STORAGE_KEY, JSON.stringify(dailyCare))
+    saveStorageJson(DAILY_CARE_STORAGE_KEY, dailyCare)
   }, [dailyCare])
 
   useEffect(() => {
-    localStorage.setItem(
-      JOURNAL_STORAGE_KEY,
-      JSON.stringify(journalEntries),
-    )
+    saveStorageJson(JOURNAL_STORAGE_KEY, journalEntries)
   }, [journalEntries])
 
   useEffect(() => {
-    localStorage.setItem(
-      DREAM_ALBUM_STORAGE_KEY,
-      JSON.stringify(discoveredDreamIds),
-    )
+    saveStorageJson(DREAM_ALBUM_STORAGE_KEY, discoveredDreamIds)
   }, [discoveredDreamIds])
 
   useEffect(
@@ -984,7 +1007,7 @@ function App() {
   }
 
   const feedPet = () => {
-    if (stats.hunger <= 0) {
+    if (isFeedDisabled) {
       return
     }
 
@@ -1140,6 +1163,10 @@ function App() {
     setActiveEvent(null)
     setCareWarning(null)
     lastUpdatedRef.current = Date.now()
+    saveStorageValue(
+      LAST_UPDATED_STORAGE_KEY,
+      String(lastUpdatedRef.current),
+    )
     setShowLevelUp(false)
     addJournalEntry('A new pet journey started.', 'system')
   }
@@ -1515,13 +1542,23 @@ function App() {
         </section>
 
         <section className="actions" aria-label="Pet actions">
-          <button className="action-button action-button--feed" onClick={feedPet}>
+          <button
+            className="action-button action-button--feed"
+            onClick={feedPet}
+            disabled={isFeedDisabled}
+          >
             <span className="action-button__icon" aria-hidden="true">
               🍪
             </span>
             <span>
               <strong>Feed</strong>
-              <small>Hunger −25 · +10 XP</small>
+              <small>
+                {stats.hunger <= 0
+                  ? 'Not hungry right now'
+                  : isDreaming
+                    ? 'Wait for the dream to finish'
+                    : 'Hunger −25 · +10 XP'}
+              </small>
             </span>
           </button>
 
@@ -1538,7 +1575,9 @@ function App() {
               <strong>Play</strong>
               <small id={isPlayDisabled ? 'play-disabled-hint' : undefined}>
                 {isPlayDisabled
-                  ? 'Too sleepy · needs 15 energy'
+                  ? isDreaming
+                    ? 'Wait for the dream to finish'
+                    : 'Too sleepy · needs 15 energy'
                   : 'Happy +20 · Energy −15 · +12 XP'}
               </small>
             </span>
