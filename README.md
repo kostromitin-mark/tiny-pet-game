@@ -69,19 +69,16 @@ You can preview the production build locally with:
 npm run preview
 ```
 
-## What I Learned
+## Technical Implementation
 
-While building Tiny Pet Game, I practiced:
+The project includes:
 
-- Managing several related pieces of state with React hooks
-- Creating reusable update functions with TypeScript
-- Saving and validating game data in `localStorage`
-- Calculating offline progress from timestamps
-- Building XP, levels, streaks, rewards, and random events
-- Creating UI animations with CSS keyframes and transitions
-- Supporting `prefers-reduced-motion` for accessibility
-- Designing a responsive interface without a UI library
-- Preparing and deploying a Vite application with Vercel
-
-This project helped me understand how small systems can work together to make
-a simple interface feel like a complete game.
+- React state-based UI
+- TypeScript data models for pet stats, progression, customization, journal entries, and dreams
+- Persistent browser state using `localStorage`
+- Time-based stat changes, including offline progress
+- XP, levels, streaks, rewards, and random events
+- CSS animations and responsive layout
+- `prefers-reduced-motion` support
+- Vite production build
+- Vercel deployment
