@@ -275,7 +275,7 @@ const moodDetails: Record<
   },
   normal: {
     face: '😊',
-    label: 'Content',
+    label: 'Good',
     status: "I'm feeling good",
     message: 'What should we do next?',
   },
